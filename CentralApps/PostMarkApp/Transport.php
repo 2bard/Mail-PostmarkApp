@@ -104,7 +104,7 @@ class Transport implements \CentralApps\Mail\Transport {
 		$email = $message->generateSendableArray();
 		if(empty($this->errors)) {
 			// do something
-			$this->sendViaPostmarkApp($email);
+			return $this->sendViaPostmarkApp($email);
 		} else {
 			// throw something
 		}
