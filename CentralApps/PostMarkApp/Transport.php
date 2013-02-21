@@ -102,17 +102,21 @@ class Transport implements \CentralApps\Mail\Transport {
 	{
 		$this->prepare($message);
 		$email = $message->generateSendableArray();
+
 		if(empty($this->errors)) {
-			// do something
-			return $this->sendViaPostmarkApp($email);
+			try{
+				return $this->sendViaPostmarkApp($email);	
+			} catch (\Exception $e) {
+				throw $e;
+			}
+			
 		} else {
-			// throw something
+			throw new \Exception('There were errors sending via PostmarkApp: ' . print_r($this->errors, TRUE));
 		}
 	}
 	
 	protected function sendViaPostmarkApp($sendableEmail)
 	{
-		
 		$email = json_encode( $sendableEmail );
 		
 		$headers = array(
@@ -128,16 +132,22 @@ class Transport implements \CentralApps\Mail\Transport {
 		curl_setopt($ch, \CURLOPT_POSTFIELDS, $email);
 		curl_setopt($ch, \CURLOPT_HTTPHEADER, $headers);
 		$response = curl_exec($ch);
-		$error = curl_error($ch);
-		$cleaned_response = json_decode( $response );
-		if( curl_getinfo($ch, \CURLINFO_HTTP_CODE) == 200 )
-		{
-			return true;
+
+		if($response === false) {
+			throw new \Exception('Curl error:'. curl_error($ch));
+		} else {
+			$cleaned_response = json_decode( $response );
+			
+			if( curl_getinfo($ch, \CURLINFO_HTTP_CODE) == 200 ){
+				return TRUE;
+			} else {
+				if(isset($cleaned_response->ErrorCode)){
+					throw new \Exception('Postmark returned an error: ' . $cleaned_response->Message);
+				}
+				return FALSE;
+			}
 		}
-		else
-		{
-			return false;
-		}
+		
 	}
 	
 }
